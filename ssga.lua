@@ -110,6 +110,22 @@ function ssga.new(ua, domain, options)
 		return self
 	end
 
+	function self.set_event(self, category, action, label, value) 
+		ed = "5(" .. category .. "*" .. action
+		if label ~= nil then		  
+		  ed = ed .. "*" .. label
+		end
+		
+		ed = ed .. ")"
+		
+		if value ~= nil then
+		  ed = ed .. "(" .. value .. ")"
+		end
+		
+		data['utme'] = ed
+		return self
+	end
+	
 	function self.send(self) 
 		tracking_url = create_req_url()
         ngx.log(ngx.DEBUG, "tracking url: ", tracking_url)
@@ -184,6 +200,26 @@ function track(options)
 	-- the UA part with MO
 	local ssga = ssga.new(options.ua:gsub('UA', 'MO'), options.domain, options) 
 	ssga:set_page(options.page, options.prefix)
+	
+	ssga:send()
+end
+
+function event(options)
+
+	-- check and fix mandatory params
+	if(not (options and options.ua)) then 
+		ngx.log(ngx.ERR, "you must specify UA code to track visits")
+		return
+	end
+	options.domain = options.domain and options.domain or ngx.var.host
+	options.page = options.page and options.page or ngx.var.uri
+	options.prefix = options.prefix and options.prefix or ''
+
+	-- to track the real ip address of the visitor we use the utmip param, but it seems to
+	-- work only in "mobile mode".So we change the UA ID to a mobile one, just by replacing	
+	-- the UA part with MO
+	local ssga = ssga.new(options.ua:gsub('UA', 'MO'), options.domain, options) 
+	ssga:set_event(options.category, options.action, options.label, options.value)
 	
 	ssga:send()
 end
